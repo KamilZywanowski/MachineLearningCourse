@@ -1,18 +1,20 @@
 from sklearn import datasets
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.metrics import confusion_matrix, classification_report, plot_confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report, plot_confusion_matrix, accuracy_score
+from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from scipy.stats import uniform, randint
 from mlxtend.plotting import plot_decision_regions
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import itertools
 import numpy as np
 import pandas as pd
-
+import pickle
 
 def task1(used_features):  # ONLY FIRST TWO COLUMNS, VISUALIZATION
     iris = datasets.load_iris(as_frame=True)
@@ -62,25 +64,25 @@ def task1(used_features):  # ONLY FIRST TWO COLUMNS, VISUALIZATION
     svm = SVC()
     svm.fit(X_train_minmax_scaler.loc[:, used_features], y_train)
     y_predicted_svm = svm.predict(X_test_minmax_scaler.loc[:, used_features])
-    results['SVM'] = classification_report(y_test, y_predicted_svm)
+    results['SVM'] = accuracy_score(y_test, y_predicted_svm)
 
     logistic_regression = LogisticRegression()
     logistic_regression.fit(X_train_minmax_scaler.loc[:, used_features], y_train)
     y_predicted_logistic_regression = logistic_regression.predict(
         X_test_minmax_scaler.loc[:, used_features])
-    results['Logistic Regression'] = classification_report(y_test, y_predicted_logistic_regression)
+    results['Logistic Regression'] = accuracy_score(y_test, y_predicted_logistic_regression)
 
     decision_tree = DecisionTreeClassifier()
     decision_tree.fit(X_train_minmax_scaler.loc[:, used_features], y_train)
     y_predicted_decision_tree = decision_tree.predict(
         X_test_minmax_scaler.loc[:, used_features])
-    results['Decision Tree'] = classification_report(y_test, y_predicted_decision_tree)
+    results['Decision Tree'] = accuracy_score(y_test, y_predicted_decision_tree)
 
     random_forest = RandomForestClassifier()
     random_forest.fit(X_train_minmax_scaler.loc[:, used_features], y_train)
     y_predicted_random_forest = random_forest.predict(
         X_test_minmax_scaler.loc[:, used_features])
-    results['Random Forest'] = classification_report(y_test, y_predicted_random_forest)
+    results['Random Forest'] = accuracy_score(y_test, y_predicted_random_forest)
 
     for key, value in results.items():
         print(f"{key} clasification report: \n{value}")
@@ -127,7 +129,7 @@ def task2():     # ALL FEATURES, NO VISUALIZATION
                                           'petal length (cm)', 'petal width (cm)']], y_train)
     y_predicted_svm = svm.predict(X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
                                                                'petal length (cm)', 'petal width (cm)']])
-    results['SVM'] = classification_report(y_test, y_predicted_svm)
+    results['SVM'] = accuracy_score(y_test, y_predicted_svm)
 
     logistic_regression = LogisticRegression()
     logistic_regression.fit(X_train_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
@@ -135,7 +137,7 @@ def task2():     # ALL FEATURES, NO VISUALIZATION
     y_predicted_logistic_regression = logistic_regression.predict(
         X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
                                      'petal length (cm)', 'petal width (cm)']])
-    results['Logistic Regression'] = classification_report(y_test, y_predicted_logistic_regression)
+    results['Logistic Regression'] = accuracy_score(y_test, y_predicted_logistic_regression)
 
     decision_tree = DecisionTreeClassifier()
     decision_tree.fit(X_train_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
@@ -143,7 +145,7 @@ def task2():     # ALL FEATURES, NO VISUALIZATION
     y_predicted_decision_tree = decision_tree.predict(
         X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
                                      'petal length (cm)', 'petal width (cm)']])
-    results['Decision Tree'] = classification_report(y_test, y_predicted_decision_tree)
+    results['Decision Tree'] = accuracy_score(y_test, y_predicted_decision_tree)
 
     random_forest = RandomForestClassifier()
     random_forest.fit(X_train_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
@@ -151,14 +153,60 @@ def task2():     # ALL FEATURES, NO VISUALIZATION
     y_predicted_random_forest = random_forest.predict(
         X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
                                      'petal length (cm)', 'petal width (cm)']])
-    results['Random Forest'] = classification_report(y_test, y_predicted_random_forest)
+    results['Random Forest'] = accuracy_score(y_test, y_predicted_random_forest)
 
     for key, value in results.items():
         print(f"{key} clasification report: \n{value}")
 
 
 def task3():
-    pass
+    iris = datasets.load_iris(as_frame=True)
+
+    X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, train_size=0.8,
+                                                        random_state=42, stratify=iris.target)
+    scaler_mm = MinMaxScaler()
+    scaler_mm.fit(X_train)
+    # SCALER RETURNS NUMPY ARRAYS
+    X_train_minmax_scaler = pd.DataFrame(scaler_mm.transform(X_train),
+                                         columns=['sepal length (cm)', 'sepal width (cm)',
+                                                  'petal length (cm)', 'petal width (cm)'])
+
+    X_test_minmax_scaler = pd.DataFrame(scaler_mm.transform(X_test),
+                                        columns=['sepal length (cm)', 'sepal width (cm)',
+                                                 'petal length (cm)', 'petal width (cm)'])
+    results = {}
+
+    svm = SVC()
+    print(svm.get_params())
+    parameters = {'kernel': ('linear', 'rbf'), 'C': [1, 2, 5, 10]}
+    clf = GridSearchCV(svm, parameters)
+    clf.fit(X_train_minmax_scaler, y_train)
+    print(clf.best_params_)
+
+    decision_tree = DecisionTreeClassifier()
+    print(decision_tree.get_params())
+    param_dist = {"max_depth": [3, None],
+                  "ccp_alpha": uniform,
+                  "max_features": randint(1, 4),
+                  "min_samples_leaf": randint(1, 15),
+                  "criterion": ["gini", "entropy"]}
+    clf = RandomizedSearchCV(decision_tree, param_dist, random_state=0)
+    search = clf.fit(X_train_minmax_scaler, y_train)
+    # decision_tree.set_params(search.best_params_)
+    print(decision_tree.get_params())
+    # print(search.best_params_)
+    # for key, val in sorted(search.cv_results_.items()):
+    #     print(key, val)
+
+
+    clf_predicted = clf.predict(X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
+                                                            'petal length (cm)', 'petal width (cm)']])
+    print("original: ", accuracy_score(y_test, clf_predicted))
+    saved_model = pickle.dumps(clf)
+    clf2 = pickle.loads(saved_model)
+    clf2_predicted = clf2.predict(X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
+                                                             'petal length (cm)', 'petal width (cm)']])
+    print("loaded from save: ", accuracy_score(y_test, clf2_predicted))
 
 
 def task4():
@@ -166,14 +214,14 @@ def task4():
 
 
 def main():
-    print('sepal length (cm), sepal width (cm)')
-    task1(['sepal length (cm)', 'sepal width (cm)'])
-    print('sepal length (cm), petal length (cm)')
-    task1(['sepal length (cm)', 'petal length (cm)'])
-    print("all features")
-    task2()
+    # print('sepal length (cm), sepal width (cm)')
+    # task1(['sepal length (cm)', 'sepal width (cm)'])
+    # print('sepal length (cm), petal length (cm)')
+    # task1(['sepal length (cm)', 'petal length (cm)'])
+    # print("all features")
+    # task2()
     # task3()
-    # task4()
+    task4()
 
 
 if __name__ == '__main__':
