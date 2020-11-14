@@ -203,7 +203,7 @@ def task3():
                   "max_features": randint(1, 4),
                   "min_samples_leaf": randint(1, 15),
                   "criterion": ["gini", "entropy"]}
-    clf = RandomizedSearchCV(decision_tree, param_dist, random_state=0)
+    clf = RandomizedSearchCV(decision_tree, param_dist, random_state=66)
     search = clf.fit(X_train_minmax_scaler, y_train)
     # decision_tree.set_params(search.best_params_)
     print(decision_tree.get_params())
@@ -250,7 +250,7 @@ def task4():
         param_dist = {"max_depth": [3, None],
                       "min_samples_leaf": randint(1, 9),
                       "criterion": ["gini", "entropy"]}
-        clf = RandomizedSearchCV(decision_tree, param_dist, random_state=0, n_jobs=2)
+        clf = RandomizedSearchCV(decision_tree, param_dist, random_state=66, n_jobs=2)
         best_model = clf.fit(X_train, y_train)
         print(best_model.best_params_)
         pickle.dump(clf, open("best_decision_tree.p", "wb"))
