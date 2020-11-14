@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import pickle
 
+
 def task1(used_features):  # ONLY FIRST TWO COLUMNS, VISUALIZATION
     iris = datasets.load_iris(as_frame=True)
     # print(iris.data.describe())
@@ -29,6 +30,7 @@ def task1(used_features):  # ONLY FIRST TWO COLUMNS, VISUALIZATION
     # Count number of occurences
     # unique, counts = np.unique(y_test, return_counts=True)
     # print(unique, counts)
+    # np.bincount()
     # Wizualizujemy tylko dwie pierwsze cechy – aby móc je przedstawić bez problemu w 2D.
     # plt.scatter(X_train.loc[:, 'sepal length (cm)'], X_train.loc[:, 'sepal width (cm)'])
     # plt.axvline(x=0)
@@ -107,7 +109,7 @@ def task1(used_features):  # ONLY FIRST TWO COLUMNS, VISUALIZATION
     plt.show()
 
 
-def task2():     # ALL FEATURES, NO VISUALIZATION
+def task2():  # ALL FEATURES, NO VISUALIZATION
     iris = datasets.load_iris(as_frame=True)
 
     X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, train_size=0.8,
@@ -183,6 +185,17 @@ def task3():
     clf.fit(X_train_minmax_scaler, y_train)
     print(clf.best_params_)
 
+
+    # Wersja z labow:
+    param_grid = [
+        {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
+        {'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']},
+    ]
+    clf_gs = GridSearchCV(estimator=SVC(), param_grid=param_grid, n_jobs=3, verbose=20)
+    clf_gs.fit(X_train_minmax_scaler, y_train)
+    print(clf_gs.cv_results_)
+
+
     decision_tree = DecisionTreeClassifier()
     print(decision_tree.get_params())
     param_dist = {"max_depth": [3, None],
@@ -198,19 +211,54 @@ def task3():
     # for key, val in sorted(search.cv_results_.items()):
     #     print(key, val)
 
-
     clf_predicted = clf.predict(X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
-                                                            'petal length (cm)', 'petal width (cm)']])
+                                                             'petal length (cm)', 'petal width (cm)']])
     print("original: ", accuracy_score(y_test, clf_predicted))
     saved_model = pickle.dumps(clf)
     clf2 = pickle.loads(saved_model)
     clf2_predicted = clf2.predict(X_test_minmax_scaler.loc[:, ['sepal length (cm)', 'sepal width (cm)',
-                                                             'petal length (cm)', 'petal width (cm)']])
+                                                               'petal length (cm)', 'petal width (cm)']])
     print("loaded from save: ", accuracy_score(y_test, clf2_predicted))
 
 
 def task4():
-    pass
+    # mnist = datasets.fetch_openml(data_id=40996, as_frame=True)
+    # mnist.data.to_csv('mnist_data.csv')
+    # mnist.target.to_csv('mnist_targets.csv')
+    # print(mnist.DESCR)
+    mnist_data = pd.read_csv('mnist_data.csv')
+    mnist_targets = pd.read_csv('mnist_targets.csv')
+    # print(mnist_data)
+    print(mnist_targets)
+
+    X_train, X_test, y_train, y_test = train_test_split(mnist_data, mnist_targets.iloc[:, 1], train_size=0.8,
+                                                        random_state=42, stratify=mnist_targets.iloc[:, 1])
+
+    dtree = DecisionTreeClassifier()
+    print(dtree.get_params())
+
+    dtree.fit(X_train, y_train)
+    predicted = dtree.predict(X_test)
+    print(dtree.get_params())
+
+    print("without hyperparam optimization: ", accuracy_score(y_test, predicted))
+
+    use_snap = True
+    if not use_snap:
+        decision_tree = DecisionTreeClassifier()
+        print(decision_tree.get_params())
+        param_dist = {"max_depth": [3, None],
+                      "min_samples_leaf": randint(1, 9),
+                      "criterion": ["gini", "entropy"]}
+        clf = RandomizedSearchCV(decision_tree, param_dist, random_state=0, n_jobs=2)
+        best_model = clf.fit(X_train, y_train)
+        print(best_model.best_params_)
+        pickle.dump(clf, open("best_decision_tree.p", "wb"))
+    else:
+        best_model = pickle.load(open("best_decision_tree.p", "rb"))
+        predicted = best_model.predict(X_test)
+        print("loaded from save score: ", accuracy_score(y_test, predicted))
+
 
 
 def main():
@@ -222,6 +270,7 @@ def main():
     # task2()
     # task3()
     task4()
+    # Todo: task5() voting/stacking classifier to join models (yt)
 
 
 if __name__ == '__main__':
