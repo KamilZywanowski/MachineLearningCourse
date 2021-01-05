@@ -10,6 +10,7 @@ import gap_statistic
 import os
 import cv2
 
+
 def task1():
     X, y = datasets.load_iris(return_X_y=True, as_frame=False)
 
@@ -24,7 +25,7 @@ def task1():
     ax.set_zlabel('3')
     #
     # plt.show()
-    # choose clustering KMeans/MeanShift/AffinityPropagation/Agglomerative etc
+    # choose clustering KMeans/MeanShift/AffinityPropagation/Agglomerative/DBSCAN etc
     # clustering = cluster.KMeans(3)
     clustering = cluster.KMeans()
     clustering.fit(X)
@@ -65,6 +66,7 @@ def task2():
     plt.figure()
     optimalK = gap_statistic.OptimalK(n_jobs=2, parallel_backend='joblib')
     n_clusters = optimalK(X, cluster_array=np.arange(1, 15))
+    print(optimalK.gap_df.head())
     optimalK.plot_results()
     plt.show()
 
@@ -79,11 +81,11 @@ def task3():
     X_sne = sne.fit_transform(X)
 
     plt.figure("No reduction (no sense with digits, use with iris)")
-    plt.scatter(X[:, 0], X[:, 1], c='Green')
+    plt.scatter(X[:, 0], X[:, 1], c=y)
     plt.figure("PCA")
-    plt.scatter(X_pca[:, 0], X_pca[:, 1], c='Red')
+    plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y)
     plt.figure("TSNE")
-    plt.scatter(X_sne[:, 0], X_sne[:, 1], c='Blue')
+    plt.scatter(X_sne[:, 0], X_sne[:, 1], c=y)
     plt.show()
 
 
@@ -172,8 +174,8 @@ def main():
     # task1()
     # task2()
     # task3()
-    # task4()
-    task5()
+    task4()
+    # task5()
 
 if __name__ == '__main__':
     main()
