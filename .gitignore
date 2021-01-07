@@ -1,2 +1,10 @@
 .idea/
 *.pyc
+/WZUM project template/input_file_data.json
+/WZUM project template/results_file.csv
+/WZUM project template/results_file.csv
+/labs/best_decision_tree.p
+/labs/mnist_data.csv
+/labs/mnist_targets.csv
+/labs/pipeline.png
+/labs/trainingdata.txt

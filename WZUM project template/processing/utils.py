@@ -3,7 +3,7 @@ import pickle
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
-zz = 0
+
 def perform_processing(
         temperature: pd.DataFrame,
         target_temperature: pd.DataFrame,
@@ -34,7 +34,7 @@ def perform_processing(
     df_combined['temp_3rd_last'] = df_combined['temp'].shift(3)
     df_combined['temp_4th_last'] = df_combined['temp'].shift(4)
 
-    features = ['temp', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'target_temp', 'valve']
+    features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'temp_4th_last']
 
     X = df_combined[features].to_numpy()[-5:]
 
@@ -44,12 +44,8 @@ def perform_processing(
     with open('/home/kamil/Pulpit/PUT/WZUM/scaler.p', 'rb') as s_file:
         scaler = pickle.load(s_file)
 
-    # X = scaler.transform(X)
+    X = scaler.transform(X)
     y = regressor.predict(X)
-    # print(X[-1])
-    # print(y[-1])
-    global zz
-    zz += 1
-    print(zz)
+
     return y[-1]
     # return df_temp.temp[-1] #+ 0.1 * (valve_level.valve[-1]/100) * target_temperature.target_temp[-1]

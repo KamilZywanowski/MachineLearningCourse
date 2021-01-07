@@ -97,7 +97,7 @@ def train_eval():
                  (df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-31')
 
     df_train = df_combined.loc[mask_train].between_time('3:45', '15:45')
-    features = ['temp', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'target_temp', 'valve']
+    features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'temp_4th_last']
 
     X_train = df_train[features].to_numpy()
     y_train = df_train['temp_gt'].to_numpy()
@@ -139,11 +139,74 @@ def train_eval():
     # plt.show()
 
 
+def train_eval_from_prepared_data():
+    features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'temp_4th_last']
+
+    df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/train.csv',
+                              names=['stamp'] + features, index_col=0, parse_dates=True, header=None).fillna(method='ffill')
+
+    df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/gt.csv',
+                        names=['stamp', 'temp_gt'], index_col=0, parse_dates=True, header=None)
+
+    df_combined = df_combined.drop_duplicates()
+    df_gt = df_gt.drop_duplicates()
+    df_combined = df_combined.join(df_gt, on='stamp', how='inner')
+
+    # yes test
+    mask_test = (df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22')
+
+    df_test = df_combined.loc[mask_test].between_time('3:45', '16:00')
+
+    # workdays only, no test(21.10):
+    mask_train = (df_combined.index >= '2020-03-05') & (df_combined.index < '2020-03-07') | \
+                 (df_combined.index >= '2020-10-13') & (df_combined.index < '2020-10-17') | \
+                 (df_combined.index >= '2020-03-09') & (df_combined.index < '2020-03-14') | \
+                 (df_combined.index >= '2020-03-16') & (df_combined.index < '2020-03-20') | \
+                 (df_combined.index >= '2020-10-19') & (df_combined.index < '2020-10-21') | \
+                 (df_combined.index >= '2020-10-22') & (df_combined.index < '2020-10-24') | \
+                 (df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-31')
+
+    df_train = df_combined.loc[mask_train].between_time('3:45', '16:00')
+
+    X_train = df_train[features].to_numpy()
+    y_train = df_train['temp_gt'].to_numpy()
+
+    scaler_mm = MinMaxScaler()
+    X_train = scaler_mm.fit_transform(X_train)
+
+    X_test = df_test[features].to_numpy()
+    X_test = scaler_mm.transform(X_test)
+
+    y_test = df_test['temp_gt'].to_numpy()
+    y_last = df_test['temp_last'].to_numpy()
+
+    print(X_train.shape, y_train.shape, X_test.shape, y_test.shape, y_last.shape)
+
+    reg = ensemble.RandomForestRegressor(random_state=1)
+    # linear_model.LinearRegression
+    # linear_model.Lasso
+    # linear_model.Ridge
+    # neural_network.MLPRegressor
+
+    # reg = neural_network.MLPRegressor(random_state=42)
+    reg.fit(X_train, y_train)
+    y_reg = reg.predict(X_test)
+
+    print(f'mae last: {metrics.mean_absolute_error(y_test, y_last)}')
+    print(f'mae rf: {metrics.mean_absolute_error(y_test, y_reg)}')
+
+    with open('/home/kamil/Pulpit/PUT/WZUM/regressor.p', 'wb') as handle:
+        pickle.dump(reg, handle)
+
+    with open('/home/kamil/Pulpit/PUT/WZUM/scaler.p', 'wb') as handle:
+        pickle.dump(scaler_mm, handle)
+
+
 def main():
     random.seed(42)
     pd.options.display.max_columns = None
 
-    train_eval()
+    train_eval_from_prepared_data()
 
 
 if __name__ == '__main__':
