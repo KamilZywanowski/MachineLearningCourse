@@ -144,8 +144,8 @@ def train_eval_from_prepared_data():
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'temp_4th_last']
 
     df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/train.csv',
-                              names=['stamp'] + features, index_col=0, parse_dates=True, header=None).fillna(
-        method='ffill')
+                              names=['stamp'] + features, index_col=0,
+                              parse_dates=True, header=None).fillna(method='ffill')
 
     df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/gt.csv',
                         names=['stamp', 'temp_gt'], index_col=0, parse_dates=True, header=None)
@@ -155,9 +155,13 @@ def train_eval_from_prepared_data():
     df_combined = df_combined.join(df_gt, on='stamp', how='inner')
 
     # get rid of the real test set:
-    without_test = np.invert((df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22'))
-
+    # without_test = np.invert((df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22'))
+    without_test = np.invert((df_combined.index >= '2020-03-12') & (df_combined.index < '2020-03-13'))
     df_combined = df_combined.loc[without_test]
+
+    # get rid of weekends
+    witout_weekends = df_combined.index.weekday < 5
+    df_combined = df_combined.loc[witout_weekends]
 
     X = df_combined.between_time('3:00', '17:00')[features].to_numpy()
     y_gt_last = df_combined.between_time('3:00', '17:00')[['temp_gt', 'temp_last']].to_numpy()
@@ -165,7 +169,8 @@ def train_eval_from_prepared_data():
     # X = df_combined[features].to_numpy()
     # y_gt_last = df_combined[['temp_gt', 'temp_last']].to_numpy()
 
-    X_train, X_test, y_train_gt_last, y_test_gt_last = model_selection.train_test_split(X, y_gt_last, test_size=0.33, random_state=42)
+    X_train, X_test, y_train_gt_last, y_test_gt_last = model_selection.train_test_split(X, y_gt_last, shuffle=True,
+                                                                                        test_size=0.1, random_state=42)
 
     y_train = y_train_gt_last[:, 0]
     y_test = y_test_gt_last[:, 0]
@@ -250,8 +255,8 @@ def train_eval_from_prepared_data():
     X_train = scaler_mm.fit_transform(X_train)
     X_test = scaler_mm.transform(X_test)
 
-    # reg = ensemble.RandomForestRegressor(n_estimators=10, random_state=1)
-    reg = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
+    reg = ensemble.RandomForestRegressor(n_estimators=200, random_state=1)
+    # reg = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
     reg.fit(X_train, y_train)
     # print(reg.best_params_)
 
