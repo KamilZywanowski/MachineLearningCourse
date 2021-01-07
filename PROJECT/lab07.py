@@ -2,9 +2,11 @@ import pandas as pd
 import random
 import json
 import matplotlib.pyplot as plt
-from sklearn import metrics, ensemble, linear_model, neural_network
+from sklearn import metrics, ensemble, linear_model, neural_network, model_selection
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import pickle
+import numpy as np
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 
 
 def load_files(period):
@@ -57,7 +59,6 @@ def read_temp_mid_sn() -> int:
 
 
 def combine_get_ftrs(period):
-
     df_temp, df_target_temp, df_valve_lvl = load_files(period)
     df_combined = pd.concat([df_temp, df_target_temp, df_valve_lvl])
     df_combined = df_combined.resample(pd.Timedelta(minutes=15)).mean().fillna(method='ffill')
@@ -72,8 +73,8 @@ def combine_get_ftrs(period):
     df_combined['valve_last'] = df_combined['valve'].shift(1)
 
     return df_combined
-    
-    
+
+
 def train_eval():
     period_1 = '2020-03-05_2020-03-19'
     period_2 = '2020-10-13_2020-11-01'
@@ -143,7 +144,8 @@ def train_eval_from_prepared_data():
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'temp_4th_last']
 
     df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/train.csv',
-                              names=['stamp'] + features, index_col=0, parse_dates=True, header=None).fillna(method='ffill')
+                              names=['stamp'] + features, index_col=0, parse_dates=True, header=None).fillna(
+        method='ffill')
 
     df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/gt.csv',
                         names=['stamp', 'temp_gt'], index_col=0, parse_dates=True, header=None)
@@ -152,44 +154,107 @@ def train_eval_from_prepared_data():
     df_gt = df_gt.drop_duplicates()
     df_combined = df_combined.join(df_gt, on='stamp', how='inner')
 
-    # yes test
-    mask_test = (df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22')
+    # get rid of the real test set:
+    without_test = np.invert((df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22'))
 
-    df_test = df_combined.loc[mask_test].between_time('3:45', '16:00')
+    df_combined = df_combined.loc[without_test]
 
-    # workdays only, no test(21.10):
-    mask_train = (df_combined.index >= '2020-03-05') & (df_combined.index < '2020-03-07') | \
-                 (df_combined.index >= '2020-10-13') & (df_combined.index < '2020-10-17') | \
-                 (df_combined.index >= '2020-03-09') & (df_combined.index < '2020-03-14') | \
-                 (df_combined.index >= '2020-03-16') & (df_combined.index < '2020-03-20') | \
-                 (df_combined.index >= '2020-10-19') & (df_combined.index < '2020-10-21') | \
-                 (df_combined.index >= '2020-10-22') & (df_combined.index < '2020-10-24') | \
-                 (df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-31')
+    X = df_combined.between_time('3:00', '17:00')[features].to_numpy()
+    y_gt_last = df_combined.between_time('3:00', '17:00')[['temp_gt', 'temp_last']].to_numpy()
 
-    df_train = df_combined.loc[mask_train].between_time('3:45', '16:00')
+    # X = df_combined[features].to_numpy()
+    # y_gt_last = df_combined[['temp_gt', 'temp_last']].to_numpy()
 
-    X_train = df_train[features].to_numpy()
-    y_train = df_train['temp_gt'].to_numpy()
+    X_train, X_test, y_train_gt_last, y_test_gt_last = model_selection.train_test_split(X, y_gt_last, test_size=0.33, random_state=42)
+
+    y_train = y_train_gt_last[:, 0]
+    y_test = y_test_gt_last[:, 0]
+    y_last = y_test_gt_last[:, 1]
+    print(X_train.shape, y_train.shape, X_test.shape, y_test.shape, y_last.shape)
+
+    # # test 9.03, 21.10, 26.10
+    # mask_test = (df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-27') #|\
+    #             # (df_combined.index >= '2020-03-09') & (df_combined.index < '2020-03-10') | \
+    #             # (df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22')
+    #
+    # # all - test, no weekends
+    # mask_train = (df_combined.index >= '2020-03-05') & (df_combined.index < '2020-03-07') | \
+    #              (df_combined.index >= '2020-03-10') & (df_combined.index < '2020-03-14') | \
+    #              (df_combined.index >= '2020-03-16') & (df_combined.index < '2020-03-21') | \
+    #              (df_combined.index >= '2020-10-13') & (df_combined.index < '2020-10-17') | \
+    #              (df_combined.index >= '2020-10-19') & (df_combined.index < '2020-10-21') | \
+    #              (df_combined.index >= '2020-10-22') & (df_combined.index < '2020-10-24') | \
+    #              (df_combined.index >= '2020-10-27') & (df_combined.index < '2020-10-31') | \
+    #              (df_combined.index >= '2020-03-09') & (df_combined.index < '2020-03-10') | \
+    #              (df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22') #| \
+    #              #(df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-27')
+    #
+    # # TODO: valve prediction!
+    # df_train = df_combined.loc[mask_train].between_time('3:45', '16:00')
+    #
+    # df_train = df_train.sample(frac=1)
+    # X_train = df_train[features].to_numpy()
+    # y_train = df_train['temp_gt'].to_numpy()
+    #
+    # scaler_mm = MinMaxScaler()
+    # X_train = scaler_mm.fit_transform(X_train)
+    #
+    # X_test = df_test[features].to_numpy()
+    # X_test = scaler_mm.transform(X_test)
+    #
+    # y_test = df_test['temp_gt'].to_numpy()
+    # y_last = df_test['temp_last'].to_numpy()
+    #
+    # print(X_train.shape, y_train.shape, X_test.shape, y_test.shape, y_last.shape)
+    #
+    # # # Number of trees in random forest
+    # # n_estimators = [int(x) for x in np.linspace(start=100, stop=1200, num=12)]
+    # # # Number of features to consider at every split
+    # # max_features = ['auto', 'sqrt']
+    # # # Maximum number of levels in tree
+    # # max_depth = [int(x) for x in np.linspace(5, 30, num=6)]
+    # # # max_depth.append(None)
+    # # # Minimum number of samples required to split a node
+    # # min_samples_split = [2, 5, 10, 15, 100]
+    # # # Minimum number of samples required at each leaf node
+    # # min_samples_leaf = [1, 2, 5, 10]
+    # # # Method of selecting samples for training each tree
+    # # # bootstrap = [True, False]
+    # #
+    # # # Create the random grid
+    # # random_grid = {'n_estimators': n_estimators,
+    # #                'max_features': max_features,
+    # #                'max_depth': max_depth,
+    # #                'min_samples_split': min_samples_split,
+    # #                'min_samples_leaf': min_samples_leaf}
+    # #
+    # # param_grid = {'alpha': [0.01, 0.1, 1.0, 10.0],
+    # #               'tol': [1e-5, 1e-4, 1e-3, 1e-2],
+    # #               'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'],
+    # #               'normalize': [True, False],
+    # #               'random_state': [0, 1, 7, 42, 66]}
+    # # reg = RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(), param_distributions=random_grid,
+    # #                          n_iter=100, cv=3, verbose=2, random_state=42, n_jobs=-2)
+    #
+    # # reg = GridSearchCV(estimator=linear_model.Ridge(), param_grid=param_grid, cv=3,
+    # #                    verbose=2, n_jobs=-2)
+    #
+    # # # linear_model.LinearRegression()
+    # # # reg = linear_model.Lasso()
+    # # reg = linear_model.Ridge(alpha=0.1, tol=1e-4, random_state=1)
+    #
+    # #
+    # # # reg = neural_network.MLPRegressor(random_state=42)
 
     scaler_mm = MinMaxScaler()
     X_train = scaler_mm.fit_transform(X_train)
-
-    X_test = df_test[features].to_numpy()
     X_test = scaler_mm.transform(X_test)
 
-    y_test = df_test['temp_gt'].to_numpy()
-    y_last = df_test['temp_last'].to_numpy()
-
-    print(X_train.shape, y_train.shape, X_test.shape, y_test.shape, y_last.shape)
-
-    reg = ensemble.RandomForestRegressor(random_state=1)
-    # linear_model.LinearRegression
-    # linear_model.Lasso
-    # linear_model.Ridge
-    # neural_network.MLPRegressor
-
-    # reg = neural_network.MLPRegressor(random_state=42)
+    # reg = ensemble.RandomForestRegressor(n_estimators=10, random_state=1)
+    reg = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
     reg.fit(X_train, y_train)
+    # print(reg.best_params_)
+
     y_reg = reg.predict(X_test)
 
     print(f'mae last: {metrics.mean_absolute_error(y_test, y_last)}')
@@ -211,4 +276,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

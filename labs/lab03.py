@@ -270,7 +270,7 @@ def main():
     # task2()
     # task3()
     task4()
-    # Todo: task5() voting/stacking classifier to join models (yt)
+    # Tod: task5() voting/stacking classifier to join models (yt)
 
 
 if __name__ == '__main__':

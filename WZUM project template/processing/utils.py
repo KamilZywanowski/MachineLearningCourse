@@ -28,7 +28,6 @@ def perform_processing(
 
     df_combined = df_combined.resample(pd.Timedelta(minutes=15)).mean().fillna(method='ffill')
 
-    # TODO prepare training data with this script. Run on all data, save ftrs
     df_combined['temp_last'] = df_combined['temp'].shift(1)
     df_combined['temp_2nd_last'] = df_combined['temp'].shift(2)
     df_combined['temp_3rd_last'] = df_combined['temp'].shift(3)
