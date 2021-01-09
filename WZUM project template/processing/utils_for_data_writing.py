@@ -6,6 +6,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 pd.options.display.max_columns = None
 pd.set_option('expand_frame_repr', False)
 
+
 def perform_processing(
         gt,
         temperature: pd.DataFrame,
@@ -13,7 +14,7 @@ def perform_processing(
         valve_level: pd.DataFrame,
         serial_number_for_prediction: str
 ) -> float:
-    f = open("gt_march.csv", "a+")
+    f = open("gt_october_5.csv", "a+")
     f.write(f'{gt.name - pd.DateOffset(minutes=15)}, {gt.temperature},  {gt.valve_level}\n')
     f.close()
     print(f'{gt.name - pd.DateOffset(minutes=15)}, {gt.temperature}, {gt.valve_level}')
@@ -34,7 +35,7 @@ def perform_processing(
 
     df_combined = pd.concat([df_combined, last_reading])
 
-    df_combined = df_combined.resample(pd.Timedelta(minutes=15)).mean().fillna(method='ffill')
+    df_combined = df_combined.resample(pd.Timedelta(minutes=5)).mean().fillna(method='ffill')
 
     df_combined['temp_last'] = df_combined['temp'].shift(1)
     df_combined['temp_2nd_last'] = df_combined['temp'].shift(2)
@@ -46,28 +47,8 @@ def perform_processing(
     df_combined['valve_3rd_last'] = df_combined['valve'].shift(3)
     df_combined['valve_4th_last'] = df_combined['valve'].shift(4)
 
-    df_combined.iloc[-1:].to_csv('train_march.csv', mode='a', index=True, header=False)
+    df_combined.iloc[-1:].to_csv('train_october_5.csv', mode='a', index=True, header=False)
     print(df_combined.tail(1))
     # time.sleep(1)
     print()
     return 0, 0
-
-    features = ['temp', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'target_temp', 'valve']
-    # print(df_combined.tail(1))
-    X = df_combined[features].to_numpy()[-5:]
-
-    with open('/home/kamil/Pulpit/PUT/WZUM/regressor.p', 'rb') as reg_file:
-        regressor = pickle.load(reg_file)
-
-    with open('/home/kamil/Pulpit/PUT/WZUM/scaler.p', 'rb') as s_file:
-        scaler = pickle.load(s_file)
-
-    # X = scaler.transform(X)
-    y = regressor.predict(X)
-    # print(X[-1])
-    # print(y[-1])
-    global zz
-    zz += 1
-    print(zz)
-    return y[-1]
-    # return df_temp.temp[-1] #+ 0.1 * (valve_level.valve[-1]/100) * target_temperature.target_temp[-1]

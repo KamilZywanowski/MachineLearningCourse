@@ -29,7 +29,7 @@ def perform_processing(
 
     df_combined = pd.concat([df_combined, last_reading])
 
-    df_combined = df_combined.resample(pd.Timedelta(minutes=15)).mean().fillna(method='ffill')
+    df_combined = df_combined.resample(pd.Timedelta(minutes=5)).mean().fillna(method='ffill')
 
     df_combined['temp_last'] = df_combined['temp'].shift(1)
     df_combined['temp_2nd_last'] = df_combined['temp'].shift(2)
@@ -52,6 +52,7 @@ def perform_processing(
 
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
                 'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
+    # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
 
     X = df_combined[features].to_numpy()[-5:]
     X = scaler.transform(X)
