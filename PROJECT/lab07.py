@@ -8,6 +8,8 @@ import pickle
 import numpy as np
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 
+pd.set_option('expand_frame_repr', False)
+
 
 def load_files(period):
     sn_temp_mid = read_temp_mid_sn()
@@ -141,18 +143,26 @@ def train_eval():
 
 
 def train_eval_from_prepared_data():
-    features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last', 'temp_4th_last']
+    train_header = ['stamp', 'temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
+                    'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
+    gt_header = ['stamp', 'temp_gt', 'valve_gt']
 
     df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/train.csv',
-                              names=['stamp'] + features, index_col=0,
+                              names=train_header, index_col=0,
                               parse_dates=True, header=None).fillna(method='ffill')
 
     df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/gt.csv',
-                        names=['stamp', 'temp_gt'], index_col=0, parse_dates=True, header=None)
+                        names=gt_header, index_col=0, parse_dates=True, header=None)
 
-    df_combined = df_combined.drop_duplicates()
-    df_gt = df_gt.drop_duplicates()
+    # print(df_combined.index.difference(df_gt.index))
+    # print(df_gt.index.difference(df_combined.index))
+    # print(df_combined[df_combined.index.duplicated(keep=False) == True])
+    # print(df_gt[df_gt.index.duplicated(keep=False) == True])
+
     df_combined = df_combined.join(df_gt, on='stamp', how='inner')
+
+    features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
+                'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
 
     # get rid of the real test set:
     # without_test = np.invert((df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22'))
@@ -164,18 +174,26 @@ def train_eval_from_prepared_data():
     df_combined = df_combined.loc[witout_weekends]
 
     X = df_combined.between_time('3:00', '17:00')[features].to_numpy()
-    y_gt_last = df_combined.between_time('3:00', '17:00')[['temp_gt', 'temp_last']].to_numpy()
+    y_tgt_vgt_tl_vl = df_combined.between_time('3:00', '17:00')[['temp_gt', 'valve_gt',
+                                                                 'temp_last', 'valve_last']].to_numpy()
 
     # X = df_combined[features].to_numpy()
     # y_gt_last = df_combined[['temp_gt', 'temp_last']].to_numpy()
 
-    X_train, X_test, y_train_gt_last, y_test_gt_last = model_selection.train_test_split(X, y_gt_last, shuffle=True,
+    X_train, X_test, y_train_gt_last, y_test_gt_last = model_selection.train_test_split(X, y_tgt_vgt_tl_vl,
+                                                                                        shuffle=True,
                                                                                         test_size=0.1, random_state=42)
 
-    y_train = y_train_gt_last[:, 0]
-    y_test = y_test_gt_last[:, 0]
-    y_last = y_test_gt_last[:, 1]
-    print(X_train.shape, y_train.shape, X_test.shape, y_test.shape, y_last.shape)
+    y_train_temp = y_train_gt_last[:, 0]
+    y_train_valve = y_train_gt_last[:, 1]
+
+    y_test_temp = y_test_gt_last[:, 0]
+    y_test_valve = y_test_gt_last[:, 1]
+
+    y_last_temp = y_test_gt_last[:, 2]
+    y_last_valve = y_test_gt_last[:, 3]
+
+    print(X_train.shape, y_train_temp.shape, X_test.shape, y_test_temp.shape, y_last_temp.shape)
 
     # # test 9.03, 21.10, 26.10
     # mask_test = (df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-27') #|\
@@ -255,19 +273,28 @@ def train_eval_from_prepared_data():
     X_train = scaler_mm.fit_transform(X_train)
     X_test = scaler_mm.transform(X_test)
 
-    reg = ensemble.RandomForestRegressor(n_estimators=200, random_state=1)
+    # temperature
+    reg_temp = ensemble.RandomForestRegressor(n_estimators=200, random_state=1)
     # reg = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
-    reg.fit(X_train, y_train)
+    reg_temp.fit(X_train, y_train_temp)
     # print(reg.best_params_)
+    y_reg_temp = reg_temp.predict(X_test)
+    print(f'mae temp last: {metrics.mean_absolute_error(y_test_temp, y_last_temp)}')
+    print(f'mae temp reg: {metrics.mean_absolute_error(y_test_temp, y_reg_temp)}')
 
-    y_reg = reg.predict(X_test)
+    # valve
+    reg_valve = ensemble.RandomForestRegressor(n_estimators=20, random_state=1)
+    # reg_valve = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
+    reg_valve.fit(X_train, y_train_valve)
+    # print(reg.best_params_)
+    y_reg_valve = reg_valve.predict(X_test)
+    print(f'mae valve last: {metrics.mean_absolute_error(y_test_valve, y_last_valve)}')
+    print(f'mae valve reg: {metrics.mean_absolute_error(y_test_valve, y_reg_valve)}')
 
-    print(f'mae last: {metrics.mean_absolute_error(y_test, y_last)}')
-    print(f'mae rf: {metrics.mean_absolute_error(y_test, y_reg)}')
-
-    with open('/home/kamil/Pulpit/PUT/WZUM/regressor.p', 'wb') as handle:
-        pickle.dump(reg, handle)
-
+    with open('/home/kamil/Pulpit/PUT/WZUM/reg_temp.p', 'wb') as handle:
+        pickle.dump(reg_temp, handle)
+    with open('/home/kamil/Pulpit/PUT/WZUM/reg_valve.p', 'wb') as handle:
+        pickle.dump(reg_valve, handle)
     with open('/home/kamil/Pulpit/PUT/WZUM/scaler.p', 'wb') as handle:
         pickle.dump(scaler_mm, handle)
 
