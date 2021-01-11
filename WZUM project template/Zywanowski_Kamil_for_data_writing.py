@@ -23,22 +23,22 @@ def main():
     stop = pd.Timestamp(arguments['stop']).tz_localize('UTC')
 
     df_temperature = pd.read_csv(arguments['file_temperature'], index_col=0, parse_dates=True)
-    df_temperature = df_temperature[df_temperature['serialNumber'] == arguments['serial_number']]
     df_target_temperature = pd.read_csv(arguments['file_target_temperature'], index_col=0, parse_dates=True)
     df_valve = pd.read_csv(arguments['file_valve_level'], index_col=0, parse_dates=True)
 
     df_combined = pd.concat([
-        df_temperature.rename(columns={'value': 'temperature'}),
+        df_temperature[df_temperature['serialNumber'] == arguments['serial_number']].rename(columns={'value': 'temperature'}),
         df_target_temperature.rename(columns={'value': 'target_temperature'}),
         df_valve.rename(columns={'value': 'valve_level'})
     ])
 
-    df_combined_resampled = df_combined.resample(pd.Timedelta(minutes=15), label='right').mean().fillna(method='ffill')
+    df_combined_resampled = df_combined.resample(pd.Timedelta(minutes=15)).mean().fillna(method='ffill')
     df_combined_resampled = df_combined_resampled.loc[start:stop]
     df_combined_resampled['predicted_temperature'] = 0.0
     df_combined_resampled['predicted_valve_level'] = 0.0
 
     current = start - pd.DateOffset(minutes=15)
+
     while current < stop:
         predicted_temperature, predicted_valve_level = perform_processing(
             df_combined_resampled.loc[(current + pd.DateOffset(minutes=15))],

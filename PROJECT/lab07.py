@@ -144,26 +144,27 @@ pd.set_option('expand_frame_repr', False)
 
 def train_eval_from_prepared_data():
     train_header = ['stamp', 'temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
-                    'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
+                    'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last',
+                    'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
     gt_header = ['stamp', 'temp_gt', 'valve_gt']
 
-    df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/train.csv',
+    df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/train5.csv',
                               names=train_header, index_col=0,
                               parse_dates=True, header=None).fillna(method='ffill')
 
-    df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/gt.csv',
+    df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/gt5.csv',
                         names=gt_header, index_col=0, parse_dates=True, header=None)
 
     # print(df_combined.index.difference(df_gt.index))
     # print(df_gt.index.difference(df_combined.index))
     # print(df_combined[df_combined.index.duplicated(keep=False) == True])
     # print(df_gt[df_gt.index.duplicated(keep=False) == True])
-
+    # return 0
     df_combined = df_combined.join(df_gt, on='stamp', how='inner')
 
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
-                'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
-    # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
+                'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last',
+                'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
 
     # get rid of the real test set:
     # without_test = np.invert((df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22'))
@@ -171,12 +172,12 @@ def train_eval_from_prepared_data():
     df_combined = df_combined.loc[without_test]
 
     # get rid of weekends
-    # witout_weekends = df_combined.index.weekday < 5
-    # df_combined = df_combined.loc[witout_weekends]
+    witout_weekends = df_combined.index.weekday < 5
+    df_combined = df_combined.loc[witout_weekends]
 
     X = df_combined.between_time('3:00', '17:00')[features].to_numpy()
     y_tgt_vgt_tl_vl = df_combined.between_time('3:00', '17:00')[['temp_gt', 'valve_gt',
-                                                                 'temp_last', 'valve_last']].to_numpy()
+                                                                 'last_temp_reading', 'last_valve_reading']].to_numpy()
 
     # X = df_combined[features].to_numpy()
     # y_gt_last = df_combined[['temp_gt', 'temp_last']].to_numpy()
@@ -213,7 +214,6 @@ def train_eval_from_prepared_data():
     #              (df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22') #| \
     #              #(df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-27')
     #
-    # # TODO: valve prediction!
     # df_train = df_combined.loc[mask_train].between_time('3:45', '16:00')
     #
     # df_train = df_train.sample(frac=1)
@@ -284,9 +284,10 @@ def train_eval_from_prepared_data():
     print(f'mae temp reg: {metrics.mean_absolute_error(y_test_temp, y_reg_temp)}')
 
     # valve
-    reg_valve = ensemble.RandomForestRegressor(n_estimators=20, random_state=1)
+    reg_valve = ensemble.RandomForestRegressor(n_estimators=200, random_state=1)
     # reg_valve = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
     reg_valve.fit(X_train, y_train_valve)
+
     # print(reg.best_params_)
     y_reg_valve = reg_valve.predict(X_test)
     print(f'mae valve last: {metrics.mean_absolute_error(y_test_valve, y_last_valve)}')

@@ -12,7 +12,6 @@ def perform_processing(
         valve_level: pd.DataFrame,
         serial_number_for_prediction: str
 ) -> Tuple[float, float]:
-
     df_temp = temperature[temperature['serialNumber'] == serial_number_for_prediction]
 
     df_temp.rename(columns={'value': 'temp'}, inplace=True)
@@ -41,6 +40,11 @@ def perform_processing(
     df_combined['valve_3rd_last'] = df_combined['valve'].shift(3)
     df_combined['valve_4th_last'] = df_combined['valve'].shift(4)
 
+    df_combined['last_temp_reading'] = df_temp.iloc[-1]['temp']
+    df_combined['2ndlast_temp_reading'] = df_temp.iloc[-2]['temp']
+    df_combined['last_valve_reading'] = valve_level.iloc[-1]['valve']
+    df_combined['2ndlast_valve_reading'] = valve_level.iloc[-2]['valve']
+
     with open('/home/kamil/Pulpit/PUT/WZUM/reg_temp.p', 'rb') as reg_temp_file:
         reg_temp = pickle.load(reg_temp_file)
 
@@ -51,10 +55,10 @@ def perform_processing(
         scaler = pickle.load(s_file)
 
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
-                'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
-    # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
+                'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last',
+                'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
 
-    X = df_combined[features].to_numpy()[-5:]
+    X = df_combined[features].to_numpy()[-2:]
     X = scaler.transform(X)
     y_temp = reg_temp.predict(X)[-1]
     y_valve = reg_valve.predict(X)[-1]
