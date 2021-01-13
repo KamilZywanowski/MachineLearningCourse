@@ -1,8 +1,8 @@
 {
   "serial_number": "0015BC0035001299",
-  "start": "2020-03-11 4:00",
-  "stop": "2020-03-11 16:00",
-  "file_temperature": "/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/PROJECT/data/office_1_temperature_supply_points_data_2020-03-05_2020-03-19.csv",
-  "file_target_temperature": "/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/PROJECT/data/office_1_targetTemperature_supply_points_data_2020-03-05_2020-03-19.csv",
-  "file_valve_level": "/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/PROJECT/data/office_1_valveLevel_supply_points_data_2020-03-05_2020-03-19.csv"
+  "start": "2020-10-27 4:00",
+  "stop": "2020-10-27 16:00",
+  "file_temperature": "/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/PROJECT/data/office_1_temperature_supply_points_data_2020-10-13_2020-11-01.csv",
+  "file_target_temperature": "/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/PROJECT/data/office_1_targetTemperature_supply_points_data_2020-10-13_2020-11-01.csv",
+  "file_valve_level": "/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/PROJECT/data/office_1_valveLevel_supply_points_data_2020-10-13_2020-11-01.csv"
 }

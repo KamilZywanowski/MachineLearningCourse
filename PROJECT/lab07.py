@@ -2,7 +2,7 @@ import pandas as pd
 import random
 import json
 import matplotlib.pyplot as plt
-from sklearn import metrics, ensemble, linear_model, neural_network, model_selection
+from sklearn import metrics, ensemble, linear_model, neural_network, model_selection, svm, tree
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import pickle
 import numpy as np
@@ -148,11 +148,11 @@ def train_eval_from_prepared_data():
                     'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
     gt_header = ['stamp', 'temp_gt', 'valve_gt']
 
-    df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/train5.csv',
+    df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/labelright/train_15_lr.csv',
                               names=train_header, index_col=0,
-                              parse_dates=True, header=None).fillna(method='ffill')
+                              parse_dates=True, header=None)#.fillna(method='ffill')
 
-    df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/gt5.csv',
+    df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/labelright/gt_15_lr.csv',
                         names=gt_header, index_col=0, parse_dates=True, header=None)
 
     # print(df_combined.index.difference(df_gt.index))
@@ -165,10 +165,10 @@ def train_eval_from_prepared_data():
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
                 'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last',
                 'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
-
+    # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last']
     # get rid of the real test set:
-    # without_test = np.invert((df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22'))
-    without_test = np.invert((df_combined.index >= '2020-03-11') & (df_combined.index < '2020-03-12'))
+    without_test = np.invert((df_combined.index >= '2020-10-27') & (df_combined.index < '2020-10-28'))
+    # without_test = np.invert((df_combined.index >= '2020-03-11') & (df_combined.index < '2020-03-12'))
     df_combined = df_combined.loc[without_test]
 
     # get rid of weekends
@@ -197,107 +197,92 @@ def train_eval_from_prepared_data():
 
     print(X_train.shape, y_train_temp.shape, X_test.shape, y_test_temp.shape, y_last_temp.shape)
 
-    # # test 9.03, 21.10, 26.10
-    # mask_test = (df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-27') #|\
-    #             # (df_combined.index >= '2020-03-09') & (df_combined.index < '2020-03-10') | \
-    #             # (df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22')
-    #
-    # # all - test, no weekends
-    # mask_train = (df_combined.index >= '2020-03-05') & (df_combined.index < '2020-03-07') | \
-    #              (df_combined.index >= '2020-03-10') & (df_combined.index < '2020-03-14') | \
-    #              (df_combined.index >= '2020-03-16') & (df_combined.index < '2020-03-21') | \
-    #              (df_combined.index >= '2020-10-13') & (df_combined.index < '2020-10-17') | \
-    #              (df_combined.index >= '2020-10-19') & (df_combined.index < '2020-10-21') | \
-    #              (df_combined.index >= '2020-10-22') & (df_combined.index < '2020-10-24') | \
-    #              (df_combined.index >= '2020-10-27') & (df_combined.index < '2020-10-31') | \
-    #              (df_combined.index >= '2020-03-09') & (df_combined.index < '2020-03-10') | \
-    #              (df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-22') #| \
-    #              #(df_combined.index >= '2020-10-26') & (df_combined.index < '2020-10-27')
-    #
-    # df_train = df_combined.loc[mask_train].between_time('3:45', '16:00')
-    #
-    # df_train = df_train.sample(frac=1)
-    # X_train = df_train[features].to_numpy()
-    # y_train = df_train['temp_gt'].to_numpy()
-    #
-    # scaler_mm = MinMaxScaler()
-    # X_train = scaler_mm.fit_transform(X_train)
-    #
-    # X_test = df_test[features].to_numpy()
-    # X_test = scaler_mm.transform(X_test)
-    #
-    # y_test = df_test['temp_gt'].to_numpy()
-    # y_last = df_test['temp_last'].to_numpy()
+
     #
     # print(X_train.shape, y_train.shape, X_test.shape, y_test.shape, y_last.shape)
     #
-    # # # Number of trees in random forest
-    # # n_estimators = [int(x) for x in np.linspace(start=100, stop=1200, num=12)]
-    # # # Number of features to consider at every split
-    # # max_features = ['auto', 'sqrt']
-    # # # Maximum number of levels in tree
-    # # max_depth = [int(x) for x in np.linspace(5, 30, num=6)]
-    # # # max_depth.append(None)
-    # # # Minimum number of samples required to split a node
-    # # min_samples_split = [2, 5, 10, 15, 100]
-    # # # Minimum number of samples required at each leaf node
-    # # min_samples_leaf = [1, 2, 5, 10]
-    # # # Method of selecting samples for training each tree
-    # # # bootstrap = [True, False]
-    # #
-    # # # Create the random grid
-    # # random_grid = {'n_estimators': n_estimators,
-    # #                'max_features': max_features,
-    # #                'max_depth': max_depth,
-    # #                'min_samples_split': min_samples_split,
-    # #                'min_samples_leaf': min_samples_leaf}
+    # Number of trees in random forest
+    # n_estimators = [int(x) for x in np.linspace(start=100, stop=1200, num=12)]
+    # # Number of features to consider at every split
+    # max_features = ['auto', 'sqrt']
+    # # Maximum number of levels in tree
+    # max_depth = [int(x) for x in np.linspace(5, 30, num=6)]
+    # max_depth.append(None)
+    # # Minimum number of samples required to split a node
+    # min_samples_split = [2, 5, 10, 15, 100]
+    # # Minimum number of samples required at each leaf node
+    # min_samples_leaf = [1, 2, 5, 10]
+    # # Method of selecting samples for training each tree
+    # bootstrap = [True, False]
+    # # #
+    # # # # Create the random grid
+    # random_grid = {'n_estimators': n_estimators,
+    #                'max_features': max_features,
+    #                'max_depth': max_depth,
+    #                'min_samples_split': min_samples_split,
+    #                'min_samples_leaf': min_samples_leaf}
     # #
     # # param_grid = {'alpha': [0.01, 0.1, 1.0, 10.0],
     # #               'tol': [1e-5, 1e-4, 1e-3, 1e-2],
     # #               'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'],
     # #               'normalize': [True, False],
     # #               'random_state': [0, 1, 7, 42, 66]}
-    # # reg = RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(), param_distributions=random_grid,
-    # #                          n_iter=100, cv=3, verbose=2, random_state=42, n_jobs=-2)
     #
     # # reg = GridSearchCV(estimator=linear_model.Ridge(), param_grid=param_grid, cv=3,
     # #                    verbose=2, n_jobs=-2)
     #
-    # # # linear_model.LinearRegression()
-    # # # reg = linear_model.Lasso()
-    # # reg = linear_model.Ridge(alpha=0.1, tol=1e-4, random_state=1)
-    #
-    # #
-    # # # reg = neural_network.MLPRegressor(random_state=42)
 
-    scaler_mm = MinMaxScaler()
+
+    scaler_mm = StandardScaler()
     X_train = scaler_mm.fit_transform(X_train)
     X_test = scaler_mm.transform(X_test)
 
     # temperature
-    reg_temp = ensemble.RandomForestRegressor(n_estimators=200, random_state=1)
-    # reg = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
+    reg_temp = linear_model.LinearRegression() #TODO finetune this
+    # reg = linear_model.Lasso()
+    # reg = linear_model.Ridge(alpha=0.1, tol=1e-4, random_state=1)
+    # reg_temp = neural_network.MLPRegressor(random_state=42)
+    # reg_temp = RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(), param_distributions=random_grid,
+    #                          n_iter=1000, cv=3, verbose=2, random_state=42, n_jobs=-2)
+    # reg_temp = ensemble.RandomForestRegressor(n_estimators=200, random_state=42)
+
     reg_temp.fit(X_train, y_train_temp)
-    # print(reg.best_params_)
+    # print(reg_temp.best_params_)
     y_reg_temp = reg_temp.predict(X_test)
+
     print(f'mae temp last: {metrics.mean_absolute_error(y_test_temp, y_last_temp)}')
     print(f'mae temp reg: {metrics.mean_absolute_error(y_test_temp, y_reg_temp)}')
 
     # valve
-    reg_valve = ensemble.RandomForestRegressor(n_estimators=200, random_state=1)
-    # reg_valve = linear_model.Ridge(alpha=0.1, tol=1e-3, random_state=42, normalize=False, solver='sag')
-    reg_valve.fit(X_train, y_train_valve)
+    # reg_valve = ensemble.RandomForestRegressor(n_estimators=200, random_state=42)
+    # reg_valve = linear_model.LinearRegression()
+    # reg_valve = neural_network.MLPRegressor(random_state=42)
+    # reg_valve = linear_model.Ridge()
+    # reg_valve = RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(), param_distributions=random_grid,
+    #                                n_iter=1000, cv=3, verbose=2, random_state=42, n_jobs=-2)
+    reg_valve = svm.SVR(kernel='linear')
+    # for reg_valve in [svm.SVR(kernel='linear'), svm.SVR(kernel='sigmoid'), svm.SVR(kernel='poly'), svm.SVR(kernel='rbf'), ensemble.RandomForestRegressor(), linear_model.LinearRegression(),
+    #                   neural_network.MLPRegressor(), linear_model.Ridge(), linear_model.SGDRegressor(loss="squared_loss"),
+    #                   linear_model.SGDRegressor(loss="huber"), linear_model.SGDRegressor(loss="epsilon_insensitive"),
+    #                   tree.DecisionTreeRegressor(), tree.ExtraTreeRegressor(),
+    #                   linear_model.Lasso(), linear_model.TweedieRegressor(), ensemble.AdaBoostRegressor(),
+    #                   ensemble.GradientBoostingRegressor()]:
+    #     reg_valve.fit(X_train, y_train_valve)
+    #     y_reg_valve = reg_valve.predict(X_test)
+    #     print(f'mae valve reg: {metrics.mean_absolute_error(y_test_valve, y_reg_valve)}')
 
-    # print(reg.best_params_)
+    reg_valve.fit(X_train, y_train_valve)
+    # # print(reg_valve.best_params_)
     y_reg_valve = reg_valve.predict(X_test)
+    print()
     print(f'mae valve last: {metrics.mean_absolute_error(y_test_valve, y_last_valve)}')
     print(f'mae valve reg: {metrics.mean_absolute_error(y_test_valve, y_reg_valve)}')
 
-    with open('/home/kamil/Pulpit/PUT/WZUM/reg_temp.p', 'wb') as handle:
+    with open('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/dane/reg_temp.p', 'wb') as handle:
         pickle.dump(reg_temp, handle)
-    with open('/home/kamil/Pulpit/PUT/WZUM/reg_valve.p', 'wb') as handle:
+    with open('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/dane/reg_valve.p', 'wb') as handle:
         pickle.dump(reg_valve, handle)
-    with open('/home/kamil/Pulpit/PUT/WZUM/scaler.p', 'wb') as handle:
+    with open('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/dane/scaler.p', 'wb') as handle:
         pickle.dump(scaler_mm, handle)
 
 

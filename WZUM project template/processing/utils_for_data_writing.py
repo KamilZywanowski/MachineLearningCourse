@@ -28,14 +28,17 @@ def perform_processing(
     df_combined = pd.concat([df_temp, target_temperature, valve_level])
     df_combined = df_combined.sort_index()
 
-    last_reading = pd.DataFrame({'target_temp': target_temperature.iloc[-1].target_temp,
-                                 'temp': df_temp.iloc[-1].temp,
-                                 'valve': valve_level.iloc[-1].valve},
-                                index=pd.to_datetime(df_temp.tail(1).index.ceil('15min')))
-
+    last_reading = df_combined.tail(1)
+    df_combined = df_combined.drop(df_combined.tail(1).index) # drop last n rows
+    last_reading = pd.DataFrame({'temp': last_reading.iloc[-1].temp,
+                                 'unit': last_reading.iloc[-1].unit,
+                                 'serialNumber': last_reading.iloc[-1].serialNumber,
+                                 'target_temp': last_reading.iloc[-1].target_temp,
+                                 'valve': last_reading.iloc[-1].valve},
+                                index=pd.to_datetime(last_reading.index - pd.Timedelta(seconds=1)))
     df_combined = pd.concat([df_combined, last_reading])
 
-    df_combined = df_combined.resample(pd.Timedelta(minutes=15)).mean().fillna(method='ffill')
+    df_combined = df_combined.resample(pd.Timedelta(minutes=5), label='right').mean().fillna(method='ffill')
 
     df_combined['temp_last'] = df_combined['temp'].shift(1)
     df_combined['temp_2nd_last'] = df_combined['temp'].shift(2)
@@ -52,8 +55,8 @@ def perform_processing(
     df_combined['last_valve_reading'] = valve_level.iloc[-1]['valve']
     df_combined['2ndlast_valve_reading'] = valve_level.iloc[-2]['valve']
 
-    df_combined.iloc[-1:].to_csv('train_october_15.csv', mode='a+', index=True, header=False)
-    f = open("gt_october_15.csv", "a+")
+    df_combined.iloc[-1:].to_csv('labelright/train_october_5_lr.csv', mode='a+', index=True, header=False)
+    f = open("labelright/gt_october_5_lr.csv", "a+")
     f.write(f'{gt.name - pd.DateOffset(minutes=15)}, {gt.temperature}, {gt.valve_level}\n')
     f.close()
     # print(df_combined.tail(3))

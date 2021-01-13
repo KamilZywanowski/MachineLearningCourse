@@ -32,7 +32,7 @@ def main():
         df_valve.rename(columns={'value': 'valve_level'})
     ])
 
-    df_combined_resampled = df_combined.resample(pd.Timedelta(minutes=15)).mean().fillna(method='ffill')
+    df_combined_resampled = df_combined.resample(pd.Timedelta(minutes=15), label='right').mean().fillna(method='ffill')
     df_combined_resampled = df_combined_resampled.loc[start:stop]
     df_combined_resampled['predicted_temperature'] = 0.0
     df_combined_resampled['predicted_valve_level'] = 0.0

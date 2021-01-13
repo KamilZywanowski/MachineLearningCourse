@@ -1,6 +1,7 @@
 from typing import Tuple
 import pickle
 import pandas as pd
+from pathlib import Path
 
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -21,14 +22,17 @@ def perform_processing(
     df_combined = pd.concat([df_temp, target_temperature, valve_level])
     df_combined = df_combined.sort_index()
 
-    last_reading = pd.DataFrame({'target_temp': target_temperature.iloc[-1].target_temp,
-                                 'temp': df_temp.iloc[-1].temp,
-                                 'valve': valve_level.iloc[-1].valve},
-                                index=pd.to_datetime(df_temp.tail(1).index.ceil('15min')))
-
+    last_reading = df_combined.tail(1)
+    df_combined = df_combined.drop(df_combined.tail(1).index) # drop last n rows
+    last_reading = pd.DataFrame({'temp': last_reading.iloc[-1].temp,
+                                 'unit': last_reading.iloc[-1].unit,
+                                 'serialNumber': last_reading.iloc[-1].serialNumber,
+                                 'target_temp': last_reading.iloc[-1].target_temp,
+                                 'valve': last_reading.iloc[-1].valve},
+                                index=pd.to_datetime(last_reading.index - pd.Timedelta(seconds=1)))
     df_combined = pd.concat([df_combined, last_reading])
 
-    df_combined = df_combined.resample(pd.Timedelta(minutes=5)).mean().fillna(method='ffill')
+    df_combined = df_combined.resample(pd.Timedelta(minutes=15), label='right').mean().fillna(method='ffill')
 
     df_combined['temp_last'] = df_combined['temp'].shift(1)
     df_combined['temp_2nd_last'] = df_combined['temp'].shift(2)
@@ -45,23 +49,25 @@ def perform_processing(
     df_combined['last_valve_reading'] = valve_level.iloc[-1]['valve']
     df_combined['2ndlast_valve_reading'] = valve_level.iloc[-2]['valve']
 
-    with open('/home/kamil/Pulpit/PUT/WZUM/reg_temp.p', 'rb') as reg_temp_file:
+    with open(Path('dane/reg_temp.p'), 'rb') as reg_temp_file:
         reg_temp = pickle.load(reg_temp_file)
 
-    with open('/home/kamil/Pulpit/PUT/WZUM/reg_valve.p', 'rb') as reg_valve_file:
+    with open(Path('dane/reg_valve.p'), 'rb') as reg_valve_file:
         reg_valve = pickle.load(reg_valve_file)
 
-    with open('/home/kamil/Pulpit/PUT/WZUM/scaler.p', 'rb') as s_file:
+    with open(Path('dane/scaler.p'), 'rb') as s_file:
         scaler = pickle.load(s_file)
 
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
                 'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last',
                 'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
+    # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
 
     X = df_combined[features].to_numpy()[-2:]
     X = scaler.transform(X)
     y_temp = reg_temp.predict(X)[-1]
     y_valve = reg_valve.predict(X)[-1]
 
+    # return df_temp.temp[-1], valve_level.valve[-1]
     return y_temp, y_valve
-    # return df_temp.temp[-1] #+ 0.1 * (valve_level.valve[-1]/100) * target_temperature.target_temp[-1]
+
