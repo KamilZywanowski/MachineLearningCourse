@@ -32,7 +32,7 @@ def perform_processing(
                                 index=pd.to_datetime(last_reading.index - pd.Timedelta(seconds=1)))
     df_combined = pd.concat([df_combined, last_reading])
 
-    df_combined = df_combined.resample(pd.Timedelta(minutes=15), label='right').mean().fillna(method='ffill')
+    df_combined = df_combined.resample(pd.Timedelta(minutes=5), label='right').mean().fillna(method='ffill')
 
     df_combined['temp_last'] = df_combined['temp'].shift(1)
     df_combined['temp_2nd_last'] = df_combined['temp'].shift(2)

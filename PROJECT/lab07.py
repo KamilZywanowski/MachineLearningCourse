@@ -148,11 +148,11 @@ def train_eval_from_prepared_data():
                     'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
     gt_header = ['stamp', 'temp_gt', 'valve_gt']
 
-    df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/labelright/train_15_lr.csv',
+    df_combined = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/labelright/train_5_lr.csv',
                               names=train_header, index_col=0,
                               parse_dates=True, header=None)#.fillna(method='ffill')
 
-    df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/labelright/gt_15_lr.csv',
+    df_gt = pd.read_csv('/home/kamil/Pulpit/PUT/WZUM/MachineLearningCourse/WZUM project template/labelright/gt_5_lr.csv',
                         names=gt_header, index_col=0, parse_dates=True, header=None)
 
     # print(df_combined.index.difference(df_gt.index))
@@ -166,17 +166,18 @@ def train_eval_from_prepared_data():
                 'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last',
                 'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
     # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last']
+
     # get rid of the real test set:
-    without_test = np.invert((df_combined.index >= '2020-10-27') & (df_combined.index < '2020-10-28'))
-    # without_test = np.invert((df_combined.index >= '2020-03-11') & (df_combined.index < '2020-03-12'))
-    df_combined = df_combined.loc[without_test]
+    # without_test = np.invert((df_combined.index >= '2020-10-21') & (df_combined.index < '2020-10-21'))
+    # without_test = np.invert((df_combined.index >= '2020-03-16') & (df_combined.index < '2020-03-17'))
+    # df_combined = df_combined.loc[without_test]
 
     # get rid of weekends
     witout_weekends = df_combined.index.weekday < 5
     df_combined = df_combined.loc[witout_weekends]
 
-    X = df_combined.between_time('3:00', '17:00')[features].to_numpy()
-    y_tgt_vgt_tl_vl = df_combined.between_time('3:00', '17:00')[['temp_gt', 'valve_gt',
+    X = df_combined.between_time('3:45', '15:45')[features].to_numpy()
+    y_tgt_vgt_tl_vl = df_combined.between_time('3:45', '15:45')[['temp_gt', 'valve_gt',
                                                                  'last_temp_reading', 'last_valve_reading']].to_numpy()
 
     # X = df_combined[features].to_numpy()
@@ -184,7 +185,7 @@ def train_eval_from_prepared_data():
 
     X_train, X_test, y_train_gt_last, y_test_gt_last = model_selection.train_test_split(X, y_tgt_vgt_tl_vl,
                                                                                         shuffle=True,
-                                                                                        test_size=0.1, random_state=42)
+                                                                                        test_size=0.15, random_state=6)
 
     y_train_temp = y_train_gt_last[:, 0]
     y_train_valve = y_train_gt_last[:, 1]
@@ -260,7 +261,7 @@ def train_eval_from_prepared_data():
     # reg_valve = linear_model.Ridge()
     # reg_valve = RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(), param_distributions=random_grid,
     #                                n_iter=1000, cv=3, verbose=2, random_state=42, n_jobs=-2)
-    reg_valve = svm.SVR(kernel='linear')
+    reg_valve = svm.SVR(kernel='linear')#TODO and this
     # for reg_valve in [svm.SVR(kernel='linear'), svm.SVR(kernel='sigmoid'), svm.SVR(kernel='poly'), svm.SVR(kernel='rbf'), ensemble.RandomForestRegressor(), linear_model.LinearRegression(),
     #                   neural_network.MLPRegressor(), linear_model.Ridge(), linear_model.SGDRegressor(loss="squared_loss"),
     #                   linear_model.SGDRegressor(loss="huber"), linear_model.SGDRegressor(loss="epsilon_insensitive"),
