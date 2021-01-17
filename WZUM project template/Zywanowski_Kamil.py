@@ -27,8 +27,7 @@ def main():
     df_valve = pd.read_csv(arguments['file_valve_level'], index_col=0, parse_dates=True)
 
     df_combined = pd.concat([
-        df_temperature[df_temperature['serialNumber'] == arguments['serial_number']].rename(
-            columns={'value': 'temperature'}),
+        df_temperature[df_temperature['serialNumber'] == arguments['serial_number']].rename(columns={'value': 'temperature'}),
         df_target_temperature.rename(columns={'value': 'target_temperature'}),
         df_valve.rename(columns={'value': 'valve_level'})
     ])
@@ -55,7 +54,7 @@ def main():
     df_combined_resampled.to_csv(results_file)
 
     ######################################
-    # mae calculation:
+    # mae:
     from sklearn import metrics
 
     y_gt_valve = df_combined_resampled['valve_level'].to_numpy()
@@ -65,7 +64,6 @@ def main():
 
     print(f'mae valve: {metrics.mean_absolute_error(y_gt_valve, y_predicted_valve)}')
     print(f'mae temp: {metrics.mean_absolute_error(y_gt_temp, y_predicted_temp)}')
-
     ######################################
 
 
