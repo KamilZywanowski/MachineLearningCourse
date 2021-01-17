@@ -61,13 +61,13 @@ def perform_processing(
     features = ['temp', 'target_temp', 'valve', 'temp_last', 'temp_2nd_last', 'temp_3rd_last',
                 'temp_4th_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last',
                 'last_temp_reading', '2ndlast_temp_reading', 'last_valve_reading', '2ndlast_valve_reading']
-    # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last', 'valve_2nd_last', 'valve_3rd_last', 'valve_4th_last']
+    # features = ['temp', 'target_temp', 'valve', 'temp_last', 'valve_last',
+    #             'last_temp_reading', 'last_valve_reading']
 
     X = df_combined[features].to_numpy()[-2:]
     X = scaler.transform(X)
     y_temp = reg_temp.predict(X)[-1]
     y_valve = reg_valve.predict(X)[-1]
-
     # return df_temp.temp[-1], valve_level.valve[-1]
     return y_temp, y_valve
 
