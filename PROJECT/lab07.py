@@ -49,7 +49,7 @@ def train_eval_from_prepared_data():
 
     X_train, X_val, y_train_gt_last, y_val_gt_last = model_selection.train_test_split(X, y_tgt_vgt_tl_vl,
                                                                                         shuffle=True,
-                                                                                        test_size=0.1, random_state=6)
+                                                                                        test_size=0.1, random_state=66)
 
     y_train_temp = y_train_gt_last[:, 0]
     y_train_valve = y_train_gt_last[:, 1]
